@@ -1,0 +1,471 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6c3d4858-ea66-4b09-b519-12e7de6fdf63",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "organic",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        320,
+        0
+      ],
+      "id": "7a82e66b-c9a8-4772-9382-e62cc3e6714c",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "organic.link",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        496,
+        0
+      ],
+      "id": "9cc90b7b-bc9d-40cf-b90e-ae73e2d6c6ac",
+      "name": "Remove Duplicates"
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        0
+      ],
+      "id": "9c6d97f6-ac50-4081-ba7e-b748d578cfdd",
+      "name": "Wait",
+      "webhookId": "5235f9ea-274f-486e-977d-d236f98893a2"
+    },
+    {
+      "parameters": {
+        "url": "=https://r.jina.ai/{{ $json.organic.link }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Return-Format",
+              "value": "markdown"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        864,
+        0
+      ],
+      "id": "d69b39f4-b176-4c13-b56b-5964eb239b4d",
+      "name": "Jina Reader"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Extract ONLY the actual news content from this article. Do NOT summarize or add your own words. Just present the key facts, quotes, numbers, and statements exactly as they appear in the article. Remove all website navigation, ads, and irrelevant content. Present the extracted content in clean bullet points.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"={{ $json.data.substring(0, 15000).replace(/\\\\/g, '\\\\\\\\').replace(/\\\"/g, '\\\\\\\"').replace(/\\n/g, '\\\\n').replace(/\\r/g, '\\\\r').replace(/\\t/g, '\\\\t') }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1680,
+        64
+      ],
+      "id": "538bd8bd-1bc9-402c-9ee5-3e10e6cfe252",
+      "name": "Groq",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "KTwYKzS2lW1GrrpP",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://google.serper.dev/search",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "={\"q\": \"ITC Ltd company news\", \"tbs\": \"qdr:d\"}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        160,
+        0
+      ],
+      "id": "d3f4c7ad-faa6-430e-8ffb-0f6736d51e06",
+      "name": "Serper"
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        64
+      ],
+      "id": "e8528bb5-e879-4ceb-8c4a-c4729785c015",
+      "name": "Wait1",
+      "webhookId": "2b841446-c106-4790-98f3-a69250a1f7d0"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1264,
+        0
+      ],
+      "id": "e36c9fcd-8a50-4d37-b8d9-cfc2bfd6ddd8",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "choices[0].message.content"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        -80
+      ],
+      "id": "6e340969-1886-4b09-a369-12aa18550dfa",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pdfshift.io/v3/convert/pdf",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": ""
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "source",
+              "value": "={{ $json.source }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1904,
+        -80
+      ],
+      "id": "4640da64-68f4-47e4-8eb2-31a0afc0104a",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "sendTo": "Khilesh2507@gmail.com",
+        "subject": "Daily Stock Research Report",
+        "emailType": "text",
+        "message": "Hi,  Please find attached this week’s AI Intelligence Report.  Regards,   Khilesh",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2080,
+        -80
+      ],
+      "id": "e196c99f-679a-4dbd-9a48-39461390eb71",
+      "name": "Send a message",
+      "webhookId": "43113cb0-cb97-4973-81e7-869d759d0205",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Nj1JJq1ojAxtkSUj",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "6775b4ee-29ee-4ba3-8c10-0573989c6b8d",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.item.json.content\n  .map((c, i) => `\n    <div style=\"margin-bottom:40px; border-bottom:1px solid #ccc; padding-bottom:20px;\">\n      <h2 style=\"color:#1a3c6e;\">Article ${i + 1}</h2>\n      <p style=\"line-height:1.8;\">${c.replace(/\\n/g, '<br>').replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>').replace(/\\*(.*?)\\n/g, '• $1<br>')}</p>\n    </div>`)\n  .join('');\n\nreturn {\n  json: {\n    source: `<!DOCTYPE html><html><head><style>\n      body { font-family: Arial, sans-serif; margin: 40px; color: #333; }\n      h1 { color: #1a3c6e; border-bottom: 2px solid #1a3c6e; padding-bottom: 10px; }\n      h2 { color: #1a3c6e; }\n      p { line-height: 1.8; }\n    </style></head><body>\n    <h1>ITC Daily News Report - ${new Date().toDateString()}</h1>\n    ${content}\n    </body></html>`\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        -80
+      ],
+      "id": "22998362-1b2e-4183-8170-d9dc154b3e96",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {
+    "Schedule Trigger": [
+      {
+        "json": {
+          "timestamp": "2026-02-24T00:00:34.009+05:30",
+          "Readable date": "February 24th 2026, 12:00:34 am",
+          "Readable time": "12:00:34 am",
+          "Day of week": "Tuesday",
+          "Year": "2026",
+          "Month": "February",
+          "Day of month": "24",
+          "Hour": "00",
+          "Minute": "00",
+          "Second": "34",
+          "Timezone": "Asia/Calcutta (UTC+05:30)"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Serper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Jina Reader",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jina Reader": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Serper": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "cc1af7c3-c04d-4cf3-83c8-bc290cd738ff",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1a9d501ba72346a5d0d96bf7b428d7df3c6541362badfb88e96c878518c0c826"
+  },
+  "id": "OMCJn2uiCUnyepV3",
+  "tags": []
+}
